@@ -2,9 +2,27 @@ library(ggplot2)
 
 ages <- read.csv("longevity.csv")
 
-gplo <- ggplot(ages, aes(x = AgeAtDeath, fill = factor(Smokes))) +
-　geom_density() +
-　facet_grid(Smokes ~ .)
+guess.accuracy <- data.frame()
+
+for (guess in seq(63, 83, by = 1)) {
+  prediction.error <- with(ages,
+                      mean((AgeAtDeath - guess) ^ 2))
+  guess.accuracy <- rbind(guess.accuracy,
+                          data.frame(Guess = guess,
+                                    Error = prediction.error))
+}
+
+# forで回して目的関数を作成
+gplo <- ggplot(guess.accuracy, aes(x = Guess, y = Error)) +
+　geom_point() +
+　geom_line()
+
+# 読み込んだデータをそのままプロット
+# fillでグラフないを色付け
+# facet_gridでグラフをSmokesが0の時と1のときで分ける
+# gplo <- ggplot(ages, aes(x = AgeAtDeath, fill = factor(Smokes))) +
+# 　geom_density() +
+# 　facet_grid(Smokes ~ .)
 
 plot(gplo)
 
