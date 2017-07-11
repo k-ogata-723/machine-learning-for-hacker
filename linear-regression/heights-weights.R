@@ -25,10 +25,20 @@ true.values <- with(heights.weights, Weight)
 errors <- true.values - predict(fitted.regression)
 
 # 残差はresiduals関数でも出せる
-residuals(fitted.regression)
+print(residuals(fitted.regression))
 
 # plot(lmの結果)では、色々な結果が出力される
 # その中で、残差の図のみを出力するようにwhichを引数で指定している
 plot(fitted.regression, which = 1)
 
 print(fitted.regression)
+
+# 残差に明確な構造が現れる、モデル作成時の悪い兆候の確認
+x <- 1:10
+y <- x ^ 2
+
+fitted.regression <- lm(y ~ x)
+
+errors <- residuals(fitted.regression)
+squared.errors <- errors ^ 2
+sum(squared.errors)
