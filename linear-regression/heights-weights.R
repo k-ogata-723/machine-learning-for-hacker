@@ -4,7 +4,7 @@ heights.weights <- read.csv('01_heights_weights_genders.csv', header = TRUE, sep
 
 # # lmと使ってシンプルにfittignする
 # # geom_pointで点をプロット
-# # geom_smoothでfitting
+# # geom_smoothでfitting\
 # heights <- ggplot(heights.weights, aes(x = Height, y = Weight)) +
 #   geom_point() +
 #   geom_smooth(method = 'lm')
@@ -42,3 +42,5 @@ fitted.regression <- lm(y ~ x)
 errors <- residuals(fitted.regression)
 squared.errors <- errors ^ 2
 sum(squared.errors)
+# 残差は、値が大き時に大きくなりがちなので、残差の合計ではなく平均を利用する
+mse <- mean(squared.errors)
