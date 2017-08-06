@@ -26,21 +26,24 @@ print(logPageViewsPlot)
 logScatterPlot <- ggplot(top.1000.sites, aes(x = log(PageViews), y = log(UniqueVisitors))) +
 	geom_point()
 
-print(logScatterPlot)
+# print(logScatterPlot)
 
 # lmでlogScatterPlotの切片を求める
 modelLm <- lm(log(PageViews) ~ log(UniqueVisitors),
 			data = top.1000.sites)
 
-print(modelLm)
-summary(lm.fit)
+plot.new()
+print(logScatterPlot)
+par(new=T)
+abline(modelLm, lwd=1, col="blue")
 
 # lm.fitに HasAdvertising と IsEnglish の情報を加える
 lm.fit <- lm(log(PageViews) ~ HasAdvertising + log(UniqueVisitors) + IsEnglish,
 				data = top.1000.sites)
 
-print(lm.fit)
 summary(lm.fit)
+plot(lm.fit)
+
 
 ## 以下、summaryので出力される中身の例
 #Call: 5.2 ウェブのアクセス数を予測する 157
