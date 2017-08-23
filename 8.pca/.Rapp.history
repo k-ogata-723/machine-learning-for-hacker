@@ -1,0 +1,332 @@
+source("/Users/old_ogata/machine-learning/stock-prediction-with-rlang/stock-prediction.R")
+source("machine-learning/machine-learning-for-hacker/5.linear-regression/heights-weights.R")
+source("machine-learning/machine-learning-for-hacker/8.pca/pca.R")
+print(fitted.regression)
+library(ggplot2)#
+#
+heights.weights <- read.csv('01_heights_weights_genders.csv', header = TRUE, sep = ',')#
+#
+# # lmと使ってシンプルにfittignする#
+# # geom_pointで点をプロット#
+# # geom_smoothでfitting\#
+# heights <- ggplot(heights.weights, aes(x = Height, y = Weight)) +#
+#   geom_point() +#
+#   geom_smooth(method = 'lm')#
+##
+# print(heights)#
+#
+# lmで線形を作成#
+# Weights = a Heights　のaを求めようとしている#
+fitted.regression <- lm(Weight ~ Height, data = heights.weights)#
+#
+# # fitted.regressionの予測仮定をprintする#
+# # fitted.regressionで切片(intercept)と傾きが得られる#
+# # predict関数ではfitted.regressionの結果を使って、各Heightsに対するWeightsを得る#
+# print(predict(fitted.regression))#
+#
+# 実際のWeightsとpredictしたWeightsの残差を確認する#
+true.values <- with(heights.weights, Weight)#
+errors <- true.values - predict(fitted.regression)#
+#
+# 残差はresiduals関数でも出せる#
+print(residuals(fitted.regression))#
+#
+# plot(lmの結果)では、色々な結果が出力される#
+# その中で、残差の図のみを出力するようにwhichを引数で指定している#
+plot(fitted.regression, which = 1)#
+#
+print(fitted.regression)#
+#
+# 残差に明確な構造が現れる、モデル作成時の悪い兆候の確認#
+x <- 1:10#
+y <- x ^ 2#
+#
+fitted.regression <- lm(y ~ x)#
+#
+errors <- residuals(fitted.regression)#
+squared.errors <- errors ^ 2#
+sum(squared.errors)#
+# 残差は、値が大き時に大きくなりがちなので、残差の合計ではなく平均を利用する#
+mse <- mean(squared.errors)
+library("lubridate")#
+library("reshape")#
+library("ggplot2")#
+#
+prices <- read.csv('stock_prices.csv')#
+#
+prices[1, ]#
+# Date Stock Close#
+#1 2011-05-25 DTE 51.12#
+# データの中身の確認用#
+# print(prices[1, ])#
+#
+# lubridateライブラリーを使って、日付をエンコードする#
+prices <- transform(prices, Date = ymd(Date))#
+# 以下2行では、不要なデータを削除#
+# subset関数で、不要なもの以外のデータを抽出している#
+prices <- subset(prices, Date != ymd('2002-02-01'))#
+prices <- subset(prices, Stock != 'DDR')#
+#
+# pricesを扱い形にやすい変換する#
+# 銘柄ごとに列を分ける#
+# DataとStockの値をとして持ち、Closeを行の値としてもつ#
+data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
+#
+# print(data.stock.matrix)#
+#
+# cor関数は相関関係を求める関数#
+# data.stock.matrixの2~最後までの列の相関を求める#
+cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+print(cor.matrix)#
+#
+# as.numericで行列を数値型に変換する#
+# ちなみに、as.characterを使えば、文字列型に変換できる#
+correlations <- as.numeric(cor.matrix)#
+#
+plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
+          aes(x = Correlation, fill = 1)) +#
+    geom_density()#
+    # opts関数でなぜかエラーになるのでコメントアウト#
+    # + opts(legend.position = 'none')#
+#
+print(plotCorrelations)#
+#
+# 行列のpcaは、princomp関数を使うだけで求められる#
+pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+#
+print(pca)#
+#
+# predict関数を使って、pcaを1行に要約する#
+market.index <- predict(pca)[,1]#
+print(market.index)#
+#
+dji.prices <- read.csv('data/DJI.csv')#
+# dji.pricesのDataをymd(Date)で変換する#
+dji.prices <- transform(dji.prices, Data = ymd(Date))#
+#
+# データの期間が長すぎるので必要な期間だけ取り出す#
+dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
+dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
+#
+# rev関数を使ってデーtを逆の並び順にする#
+dji <- with(dji.prices, rev(Close))#
+dates <- with(dji.prices, rev(Date))#
+#
+# pcaとdjiを合わせたdata.frame型を作成する#
+comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+  geom_point() +#
+  geom_smooth(method = 'lm', se = FALSE)
+getwd()
+setwd("machine-learning/machine-learning-for-hacker/8.pca/")
+library("lubridate")#
+library("reshape")#
+library("ggplot2")#
+#
+prices <- read.csv('stock_prices.csv')#
+#
+prices[1, ]#
+# Date Stock Close#
+#1 2011-05-25 DTE 51.12#
+# データの中身の確認用#
+# print(prices[1, ])#
+#
+# lubridateライブラリーを使って、日付をエンコードする#
+prices <- transform(prices, Date = ymd(Date))#
+# 以下2行では、不要なデータを削除#
+# subset関数で、不要なもの以外のデータを抽出している#
+prices <- subset(prices, Date != ymd('2002-02-01'))#
+prices <- subset(prices, Stock != 'DDR')#
+#
+# pricesを扱い形にやすい変換する#
+# 銘柄ごとに列を分ける#
+# DataとStockの値をとして持ち、Closeを行の値としてもつ#
+data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
+#
+# print(data.stock.matrix)#
+#
+# cor関数は相関関係を求める関数#
+# data.stock.matrixの2~最後までの列の相関を求める#
+cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+print(cor.matrix)#
+#
+# as.numericで行列を数値型に変換する#
+# ちなみに、as.characterを使えば、文字列型に変換できる#
+correlations <- as.numeric(cor.matrix)#
+#
+plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
+          aes(x = Correlation, fill = 1)) +#
+    geom_density()#
+    # opts関数でなぜかエラーになるのでコメントアウト#
+    # + opts(legend.position = 'none')#
+#
+print(plotCorrelations)#
+#
+# 行列のpcaは、princomp関数を使うだけで求められる#
+pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+#
+print(pca)#
+#
+# predict関数を使って、pcaを1行に要約する#
+market.index <- predict(pca)[,1]#
+print(market.index)#
+#
+dji.prices <- read.csv('data/DJI.csv')#
+# dji.pricesのDataをymd(Date)で変換する#
+dji.prices <- transform(dji.prices, Data = ymd(Date))#
+#
+# データの期間が長すぎるので必要な期間だけ取り出す#
+dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
+dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
+#
+# rev関数を使ってデーtを逆の並び順にする#
+dji <- with(dji.prices, rev(Close))#
+dates <- with(dji.prices, rev(Date))#
+#
+# pcaとdjiを合わせたdata.frame型を作成する#
+comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+  geom_point() +#
+  geom_smooth(method = 'lm', se = FALSE)
+library("lubridate")#
+library("reshape")#
+library("ggplot2")#
+#
+prices <- read.csv('stock_prices.csv')#
+#
+prices[1, ]#
+# Date Stock Close#
+#1 2011-05-25 DTE 51.12#
+# データの中身の確認用#
+# print(prices[1, ])#
+#
+# lubridateライブラリーを使って、日付をエンコードする#
+prices <- transform(prices, Date = ymd(Date))#
+# 以下2行では、不要なデータを削除#
+# subset関数で、不要なもの以外のデータを抽出している#
+prices <- subset(prices, Date != ymd('2002-02-01'))#
+prices <- subset(prices, Stock != 'DDR')#
+#
+# pricesを扱い形にやすい変換する#
+# 銘柄ごとに列を分ける#
+# DataとStockの値をとして持ち、Closeを行の値としてもつ#
+data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
+#
+# print(data.stock.matrix)#
+#
+# cor関数は相関関係を求める関数#
+# data.stock.matrixの2~最後までの列の相関を求める#
+cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+print(cor.matrix)#
+#
+# as.numericで行列を数値型に変換する#
+# ちなみに、as.characterを使えば、文字列型に変換できる#
+correlations <- as.numeric(cor.matrix)#
+#
+plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
+          aes(x = Correlation, fill = 1)) +#
+    geom_density()#
+    # opts関数でなぜかエラーになるのでコメントアウト#
+    # + opts(legend.position = 'none')#
+#
+print(plotCorrelations)#
+#
+# 行列のpcaは、princomp関数を使うだけで求められる#
+pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+#
+print(pca)#
+#
+# predict関数を使って、pcaを1行に要約する#
+market.index <- predict(pca)[,1]#
+print(market.index)#
+#
+dji.prices <- read.csv('DJI.csv')#
+# dji.pricesのDataをymd(Date)で変換する#
+dji.prices <- transform(dji.prices, Data = ymd(Date))#
+#
+# データの期間が長すぎるので必要な期間だけ取り出す#
+dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
+dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
+#
+# rev関数を使ってデーtを逆の並び順にする#
+dji <- with(dji.prices, rev(Close))#
+dates <- with(dji.prices, rev(Date))#
+#
+# pcaとdjiを合わせたdata.frame型を作成する#
+comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+  geom_point() +#
+  geom_smooth(method = 'lm', se = FALSE)
+library("lubridate")#
+library("reshape")#
+library("ggplot2")#
+#
+prices <- read.csv('stock_prices.csv')#
+#
+prices[1, ]#
+# Date Stock Close#
+#1 2011-05-25 DTE 51.12#
+# データの中身の確認用#
+# print(prices[1, ])#
+#
+# lubridateライブラリーを使って、日付をエンコードする#
+prices <- transform(prices, Date = ymd(Date))#
+# 以下2行では、不要なデータを削除#
+# subset関数で、不要なもの以外のデータを抽出している#
+prices <- subset(prices, Date != ymd('2002-02-01'))#
+prices <- subset(prices, Stock != 'DDR')#
+#
+# pricesを扱い形にやすい変換する#
+# 銘柄ごとに列を分ける#
+# DataとStockの値をとして持ち、Closeを行の値としてもつ#
+data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
+#
+# print(data.stock.matrix)#
+#
+# cor関数は相関関係を求める関数#
+# data.stock.matrixの2~最後までの列の相関を求める#
+cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+# print(cor.matrix)#
+#
+# as.numericで行列を数値型に変換する#
+# ちなみに、as.characterを使えば、文字列型に変換できる#
+correlations <- as.numeric(cor.matrix)#
+#
+plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
+          aes(x = Correlation, fill = 1)) +#
+    geom_density()#
+    # opts関数でなぜかエラーになるのでコメントアウト#
+    # + opts(legend.position = 'none')#
+#
+print(plotCorrelations)#
+#
+# 行列のpcaは、princomp関数を使うだけで求められる#
+pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
+#
+print(pca)#
+#
+# predict関数を使って、pcaを1行に要約する#
+market.index <- predict(pca)[,1]#
+print(market.index)#
+#
+dji.prices <- read.csv('DJI.csv')#
+# dji.pricesのDataをymd(Date)で変換する#
+dji.prices <- transform(dji.prices, Data = ymd(Date))#
+#
+# データの期間が長すぎるので必要な期間だけ取り出す#
+dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
+dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
+#
+# rev関数を使ってデーtを逆の並び順にする#
+dji <- with(dji.prices, rev(Close))#
+dates <- with(dji.prices, rev(Date))#
+#
+# pcaとdjiを合わせたdata.frame型を作成する#
+comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+  geom_point() +#
+  geom_smooth(method = 'lm', se = FALSE)
