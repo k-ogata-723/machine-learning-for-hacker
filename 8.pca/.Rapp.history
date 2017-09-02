@@ -72,12 +72,17 @@ prices <- subset(prices, Stock != 'DDR')#
 # DataとStockの値をとして持ち、Closeを行の値としてもつ#
 data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
 #
+# dim関数でdata.stock.matrixの行と列の長さを出す#
+# dim(data.stock.matrix)#
 # print(data.stock.matrix)#
 #
 # cor関数は相関関係を求める関数#
 # data.stock.matrixの2~最後までの列の相関を求める#
+# cor関数では、1列目と1列目の相関、1列目と2列目の相関、1列目と3列目の相関....という感じで#
+# それぞれの行の相関を行列の形で出してくれる#
 cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
-print(cor.matrix)#
+#
+# print(cor.matrix)#
 #
 # as.numericで行列を数値型に変換する#
 # ちなみに、as.characterを使えば、文字列型に変換できる#
@@ -89,20 +94,37 @@ plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
     # opts関数でなぜかエラーになるのでコメントアウト#
     # + opts(legend.position = 'none')#
 #
-print(plotCorrelations)#
+# cor関数の結果である、相関係数の発生頻度が視覚化される#
+# 正の密度が高ければ、いい感じのデータを選べている#
+# print(plotCorrelations)#
 #
 # 行列のpcaは、princomp関数を使うだけで求められる#
 pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
 #
-print(pca)#
+# print(pca)#
+#
+# pcaの結果からloadingの列を抽出する#
+# 固有ベクトルが$loadingに入っている#
+principal.component <- pca$loading[,1]#
+loadings <- as.numeric(principal.component)#
+#
+loadings.plot <- ggplot(data.frame(Loading = loadings),#
+          aes(x = Loading, fill = 1)) +#
+      geom_density()#
+      # + opts(legend.posirion = 'none')#
+#
+# print(loadings.plot)#
 #
 # predict関数を使って、pcaを1行に要約する#
 market.index <- predict(pca)[,1]#
-print(market.index)#
 #
-dji.prices <- read.csv('data/DJI.csv')#
+# print(market.index)#
+#
+dji.prices <- read.csv('DJI.csv')#
 # dji.pricesのDataをymd(Date)で変換する#
-dji.prices <- transform(dji.prices, Data = ymd(Date))#
+dji.prices <- transform(dji.prices, Date = ymd(Date))#
+#
+# print(dji.prices)#
 #
 # データの期間が長すぎるので必要な期間だけ取り出す#
 dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
@@ -113,12 +135,43 @@ dji <- with(dji.prices, rev(Close))#
 dates <- with(dji.prices, rev(Date))#
 #
 # pcaとdjiを合わせたdata.frame型を作成する#
-comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
 #
-comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+comparison <- data.frame(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +#
   geom_point() +#
-  geom_smooth(method = 'lm', se = FALSE)
-getwd()
+  geom_smooth(method = 'lm', se = FALSE)#
+#
+# この結果では、DJIとmaeketindexが負の相関を持ってしまう#
+# print(comparison.plot)#
+#
+# 以下で、maeketindexを-1にして、相関を正しくしている#
+# comparison <- transform(comparison, MarketIndex = -1 * MarketIndex)#
+##
+# comparison.ggplot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +#
+#   geom_point() +#
+#   geom_smooth(method = 'lm', se = FALSE)#
+##
+# # print(comparison.ggplot)#
+#
+alt.comparison <- melt(comparison, id.vars = 'Date')#
+names(alt.comparison) <- c('Date', 'Index', 'Price')#
+#
+ggplot(alt.comparison, aes(x = Date, y = Price, group = Index, color = Index)) +#
+  geom_point() +#
+  geom_line()#
+#
+comparison <- transform(comparison, MarketIndex = -scale(MarketIndex))#
+#
+comparison <- transform(comparison, DJI = scale(DJI))#
+alt.comparison <- melt(comparison, id.vars = 'Date')#
+names(alt.comparison) <- c('Date', 'Index', 'Price')#
+#
+p <- ggplot(alt.comparison, aes(x = Date, y = Price, group = Index, color = Index)) +#
+  geom_point() +#
+  geom_line()#
+#
+print(p)
 setwd("machine-learning/machine-learning-for-hacker/8.pca/")
 library("lubridate")#
 library("reshape")#
@@ -144,151 +197,16 @@ prices <- subset(prices, Stock != 'DDR')#
 # DataとStockの値をとして持ち、Closeを行の値としてもつ#
 data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
 #
+# dim関数でdata.stock.matrixの行と列の長さを出す#
+# dim(data.stock.matrix)#
 # print(data.stock.matrix)#
 #
 # cor関数は相関関係を求める関数#
 # data.stock.matrixの2~最後までの列の相関を求める#
+# cor関数では、1列目と1列目の相関、1列目と2列目の相関、1列目と3列目の相関....という感じで#
+# それぞれの行の相関を行列の形で出してくれる#
 cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
-print(cor.matrix)#
 #
-# as.numericで行列を数値型に変換する#
-# ちなみに、as.characterを使えば、文字列型に変換できる#
-correlations <- as.numeric(cor.matrix)#
-#
-plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
-          aes(x = Correlation, fill = 1)) +#
-    geom_density()#
-    # opts関数でなぜかエラーになるのでコメントアウト#
-    # + opts(legend.position = 'none')#
-#
-print(plotCorrelations)#
-#
-# 行列のpcaは、princomp関数を使うだけで求められる#
-pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
-#
-print(pca)#
-#
-# predict関数を使って、pcaを1行に要約する#
-market.index <- predict(pca)[,1]#
-print(market.index)#
-#
-dji.prices <- read.csv('data/DJI.csv')#
-# dji.pricesのDataをymd(Date)で変換する#
-dji.prices <- transform(dji.prices, Data = ymd(Date))#
-#
-# データの期間が長すぎるので必要な期間だけ取り出す#
-dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
-dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
-#
-# rev関数を使ってデーtを逆の並び順にする#
-dji <- with(dji.prices, rev(Close))#
-dates <- with(dji.prices, rev(Date))#
-#
-# pcaとdjiを合わせたdata.frame型を作成する#
-comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
-#
-comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
-  geom_point() +#
-  geom_smooth(method = 'lm', se = FALSE)
-library("lubridate")#
-library("reshape")#
-library("ggplot2")#
-#
-prices <- read.csv('stock_prices.csv')#
-#
-prices[1, ]#
-# Date Stock Close#
-#1 2011-05-25 DTE 51.12#
-# データの中身の確認用#
-# print(prices[1, ])#
-#
-# lubridateライブラリーを使って、日付をエンコードする#
-prices <- transform(prices, Date = ymd(Date))#
-# 以下2行では、不要なデータを削除#
-# subset関数で、不要なもの以外のデータを抽出している#
-prices <- subset(prices, Date != ymd('2002-02-01'))#
-prices <- subset(prices, Stock != 'DDR')#
-#
-# pricesを扱い形にやすい変換する#
-# 銘柄ごとに列を分ける#
-# DataとStockの値をとして持ち、Closeを行の値としてもつ#
-data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
-#
-# print(data.stock.matrix)#
-#
-# cor関数は相関関係を求める関数#
-# data.stock.matrixの2~最後までの列の相関を求める#
-cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
-print(cor.matrix)#
-#
-# as.numericで行列を数値型に変換する#
-# ちなみに、as.characterを使えば、文字列型に変換できる#
-correlations <- as.numeric(cor.matrix)#
-#
-plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
-          aes(x = Correlation, fill = 1)) +#
-    geom_density()#
-    # opts関数でなぜかエラーになるのでコメントアウト#
-    # + opts(legend.position = 'none')#
-#
-print(plotCorrelations)#
-#
-# 行列のpcaは、princomp関数を使うだけで求められる#
-pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
-#
-print(pca)#
-#
-# predict関数を使って、pcaを1行に要約する#
-market.index <- predict(pca)[,1]#
-print(market.index)#
-#
-dji.prices <- read.csv('DJI.csv')#
-# dji.pricesのDataをymd(Date)で変換する#
-dji.prices <- transform(dji.prices, Data = ymd(Date))#
-#
-# データの期間が長すぎるので必要な期間だけ取り出す#
-dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
-dji.prices <- subset(dji.prices, Date != ymd('2002-02-01'))#
-#
-# rev関数を使ってデーtを逆の並び順にする#
-dji <- with(dji.prices, rev(Close))#
-dates <- with(dji.prices, rev(Date))#
-#
-# pcaとdjiを合わせたdata.frame型を作成する#
-comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
-#
-comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
-  geom_point() +#
-  geom_smooth(method = 'lm', se = FALSE)
-library("lubridate")#
-library("reshape")#
-library("ggplot2")#
-#
-prices <- read.csv('stock_prices.csv')#
-#
-prices[1, ]#
-# Date Stock Close#
-#1 2011-05-25 DTE 51.12#
-# データの中身の確認用#
-# print(prices[1, ])#
-#
-# lubridateライブラリーを使って、日付をエンコードする#
-prices <- transform(prices, Date = ymd(Date))#
-# 以下2行では、不要なデータを削除#
-# subset関数で、不要なもの以外のデータを抽出している#
-prices <- subset(prices, Date != ymd('2002-02-01'))#
-prices <- subset(prices, Stock != 'DDR')#
-#
-# pricesを扱い形にやすい変換する#
-# 銘柄ごとに列を分ける#
-# DataとStockの値をとして持ち、Closeを行の値としてもつ#
-data.stock.matrix <- cast(prices, Date ~ Stock, value = 'Close')#
-#
-# print(data.stock.matrix)#
-#
-# cor関数は相関関係を求める関数#
-# data.stock.matrixの2~最後までの列の相関を求める#
-cor.matrix <- cor(data.stock.matrix[,2:ncol(data.stock.matrix)])#
 # print(cor.matrix)#
 #
 # as.numericで行列を数値型に変換する#
@@ -301,20 +219,37 @@ plotCorrelations <- ggplot(data.frame(Correlation = correlations),#
     # opts関数でなぜかエラーになるのでコメントアウト#
     # + opts(legend.position = 'none')#
 #
-print(plotCorrelations)#
+# cor関数の結果である、相関係数の発生頻度が視覚化される#
+# 正の密度が高ければ、いい感じのデータを選べている#
+# print(plotCorrelations)#
 #
 # 行列のpcaは、princomp関数を使うだけで求められる#
 pca <- princomp(data.stock.matrix[,2:ncol(data.stock.matrix)])#
 #
-print(pca)#
+# print(pca)#
+#
+# pcaの結果からloadingの列を抽出する#
+# 固有ベクトルが$loadingに入っている#
+principal.component <- pca$loading[,1]#
+loadings <- as.numeric(principal.component)#
+#
+loadings.plot <- ggplot(data.frame(Loading = loadings),#
+          aes(x = Loading, fill = 1)) +#
+      geom_density()#
+      # + opts(legend.posirion = 'none')#
+#
+# print(loadings.plot)#
 #
 # predict関数を使って、pcaを1行に要約する#
 market.index <- predict(pca)[,1]#
-print(market.index)#
+#
+# print(market.index)#
 #
 dji.prices <- read.csv('DJI.csv')#
 # dji.pricesのDataをymd(Date)で変換する#
-dji.prices <- transform(dji.prices, Data = ymd(Date))#
+dji.prices <- transform(dji.prices, Date = ymd(Date))#
+#
+# print(dji.prices)#
 #
 # データの期間が長すぎるので必要な期間だけ取り出す#
 dji.prices <- subset(dji.prices, Date > ymd('2001-12-31'))#
@@ -325,8 +260,182 @@ dji <- with(dji.prices, rev(Close))#
 dates <- with(dji.prices, rev(Date))#
 #
 # pcaとdjiを合わせたdata.frame型を作成する#
-comparison <- data.file.rename(Date = dates, MarketIndex = market.index, DJI = dji)#
 #
-comparison.plot <- ggplot(conparison, aes(x = MarketIndex, y = DJI)) +#
+comparison <- data.frame(Date = dates, MarketIndex = market.index, DJI = dji)#
+#
+comparison.plot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +#
   geom_point() +#
-  geom_smooth(method = 'lm', se = FALSE)
+  geom_smooth(method = 'lm', se = FALSE)#
+#
+# この結果では、DJIとmaeketindexが負の相関を持ってしまう#
+# print(comparison.plot)#
+#
+# 以下で、maeketindexを-1にして、相関を正しくしている#
+# comparison <- transform(comparison, MarketIndex = -1 * MarketIndex)#
+##
+# comparison.ggplot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +#
+#   geom_point() +#
+#   geom_smooth(method = 'lm', se = FALSE)#
+##
+# # print(comparison.ggplot)#
+#
+alt.comparison <- melt(comparison, id.vars = 'Date')#
+names(alt.comparison) <- c('Date', 'Index', 'Price')#
+#
+ggplot(alt.comparison, aes(x = Date, y = Price, group = Index, color = Index)) +#
+  geom_point() +#
+  geom_line()#
+#
+comparison <- transform(comparison, MarketIndex = -scale(MarketIndex))#
+#
+comparison <- transform(comparison, DJI = scale(DJI))#
+alt.comparison <- melt(comparison, id.vars = 'Date')#
+names(alt.comparison) <- c('Date', 'Index', 'Price')#
+#
+p <- ggplot(alt.comparison, aes(x = Date, y = Price, group = Index, color = Index)) +#
+  geom_point() +#
+  geom_line()#
+#
+print(p)
+library(ggplot2)#
+#
+top.1000.sites <- read.csv('top_1000_sites.tsv',#
+                            sep = '\t',#
+                            stringsAsFactors = FALSE)#
+#
+# top.1000.sitesのPageViewsとUniqueVisitorsを利用してプロットする#
+scatterPlot <- ggplot(top.1000.sites, aes(x = PageViews, y = UniqueVisitors)) +#
+  geom_point()#
+#
+print(scatterPlot)#
+#
+# scatterPlotのplotがよくわからないので、PageViewだけをplotする#
+PageViewsPlot <- ggplot(top.1000.sites, aes(x = PageViews)) +#
+	geom_density()#
+#
+print(PageViewsPlot)#
+#
+# PageViewsPlotを対数化する#
+logPageViewsPlot <- ggplot(top.1000.sites, aes(x = log(PageViews))) +#
+	geom_density()#
+#
+print(logPageViewsPlot)#
+#
+# 対数化したほうが良さそうなので、PageViewsPlotを対数化する#
+logScatterPlot <- ggplot(top.1000.sites, aes(x = log(PageViews), y = log(UniqueVisitors))) +#
+	geom_point()#
+#
+# print(logScatterPlot)#
+#
+# lmでlogScatterPlotの切片を求める#
+modelLm <- lm(log(PageViews) ~ log(UniqueVisitors),#
+			data = top.1000.sites)#
+#
+# これは、うまくいかないplotの方法#
+plot.new()#
+print(logScatterPlot)#
+par(new=T)#
+abline(modelLm, lwd=1, col="blue")#
+#
+# ggplotのmethodを使って、線形回帰の結果をplotする#
+plotModelLm <- ggplot(top.1000.sites, aes(x = log(PageViews), y = log(UniqueVisitors))) +#
+  geom_point() +#
+  geom_smooth(method = "lm", se = FALSE)#
+#
+print(plotModelLm)#
+# lm.fitに HasAdvertising と IsEnglish の情報を加える#
+lm.fit <- lm(log(PageViews) ~ HasAdvertising + log(UniqueVisitors) + IsEnglish,#
+				data = top.1000.sites)#
+#
+summary(lm.fit)#
+plot(lm.fit)#
+## 以下、summaryので出力される中身の例#
+#Call: 5.2 ウェブのアクセス数を予測する 157#
+#lm(formula = log(PageViews) ~ log(UniqueVisitors), data = top.1000.sites)#
+##
+#Residuals:#
+# Min 1Q Median 3Q Max#
+#-2.1825 -0.7986 -0.0741 0.6467 5.1549#
+##
+#Coefficients:#
+# Estimate Std. Error t value Pr(>|t|)#
+#(Intercept) -2.83441 0.75201 -3.769 0.000173 ***#
+#log(UniqueVisitors) の係数は 1.33628 で標準誤差は0.04568である。つまりこの係数は、標準誤差の1.33628 / 0.04568 == 29.25306 倍だけゼロから離れていることになる。もし標準誤差がゼロから 3 以上離れていれば、2 つの 変数が関連していると確信するのは理にかなっている。#
+#log(UniqueVisitors) 1.33628 0.04568 29.251 < 2e-16 ***#
+#---#
+#Signif. codes: 0‘***’0.001‘**’0.01‘*’0.05‘.’0.1‘ ’1#
+##
+#Residual standard error: 1.084 on 998 degrees of freedom#
+#Multiple R-squared: 0.4616, Adjusted R-squared: 0.4611#
+#F-statistic: 855.6 on 1 and 998 DF, p-value: < 2.2e-16
+library(ggplot2)#
+#
+top.1000.sites <- read.csv('top_1000_sites.tsv',#
+                            sep = '\t',#
+                            stringsAsFactors = FALSE)#
+#
+# top.1000.sitesのPageViewsとUniqueVisitorsを利用してプロットする#
+scatterPlot <- ggplot(top.1000.sites, aes(x = PageViews, y = UniqueVisitors)) +#
+  geom_point()#
+#
+print(scatterPlot)#
+#
+# scatterPlotのplotがよくわからないので、PageViewだけをplotする#
+PageViewsPlot <- ggplot(top.1000.sites, aes(x = PageViews)) +#
+	geom_density()#
+#
+print(PageViewsPlot)#
+#
+# PageViewsPlotを対数化する#
+logPageViewsPlot <- ggplot(top.1000.sites, aes(x = log(PageViews))) +#
+	geom_density()#
+#
+print(logPageViewsPlot)#
+#
+# 対数化したほうが良さそうなので、PageViewsPlotを対数化する#
+logScatterPlot <- ggplot(top.1000.sites, aes(x = log(PageViews), y = log(UniqueVisitors))) +#
+	geom_point()#
+#
+# print(logScatterPlot)#
+#
+# lmでlogScatterPlotの切片を求める#
+modelLm <- lm(log(PageViews) ~ log(UniqueVisitors),#
+			data = top.1000.sites)#
+#
+# これは、うまくいかないplotの方法#
+plot.new()#
+print(logScatterPlot)#
+par(new=T)#
+abline(modelLm, lwd=1, col="blue")#
+#
+# ggplotのmethodを使って、線形回帰の結果をplotする#
+plotModelLm <- ggplot(top.1000.sites, aes(x = log(PageViews), y = log(UniqueVisitors))) +#
+  geom_point() +#
+  geom_smooth(method = "lm", se = FALSE)#
+#
+print(plotModelLm)#
+# lm.fitに HasAdvertising と IsEnglish の情報を加える#
+lm.fit <- lm(log(PageViews) ~ HasAdvertising + log(UniqueVisitors) + IsEnglish,#
+				data = top.1000.sites)#
+#
+summary(lm.fit)#
+plot(lm.fit)#
+## 以下、summaryので出力される中身の例#
+#Call: 5.2 ウェブのアクセス数を予測する 157#
+#lm(formula = log(PageViews) ~ log(UniqueVisitors), data = top.1000.sites)#
+##
+#Residuals:#
+# Min 1Q Median 3Q Max#
+#-2.1825 -0.7986 -0.0741 0.6467 5.1549#
+##
+#Coefficients:#
+# Estimate Std. Error t value Pr(>|t|)#
+#(Intercept) -2.83441 0.75201 -3.769 0.000173 ***#
+#log(UniqueVisitors) の係数は 1.33628 で標準誤差は0.04568である。つまりこの係数は、標準誤差の1.33628 / 0.04568 == 29.25306 倍だけゼロから離れていることになる。もし標準誤差がゼロから 3 以上離れていれば、2 つの 変数が関連していると確信するのは理にかなっている。#
+#log(UniqueVisitors) 1.33628 0.04568 29.251 < 2e-16 ***#
+#---#
+#Signif. codes: 0‘***’0.001‘**’0.01‘*’0.05‘.’0.1‘ ’1#
+##
+#Residual standard error: 1.084 on 998 degrees of freedom#
+#Multiple R-squared: 0.4616, Adjusted R-squared: 0.4611#
+#F-statistic: 855.6 on 1 and 998 DF, p-value: < 2.2e-16

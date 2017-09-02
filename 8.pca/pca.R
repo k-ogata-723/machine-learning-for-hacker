@@ -93,26 +93,27 @@ comparison.plot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +
   geom_smooth(method = 'lm', se = FALSE)
 
 # この結果では、DJIとmaeketindexが負の相関を持ってしまう
-print(comparison.plot)
+# print(comparison.plot)
 
-comparison <- transform(comparison, MarketIndex = -1 * MarketIndex)
-
-comparison.ggplot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +
-  geom_point() +
-  geom_smooth(method = 'lm', se = FALSE)
-
-# print(comparison.ggplot)
+# 以下で、maeketindexを-1にして、相関を正しくしている
+# comparison <- transform(comparison, MarketIndex = -1 * MarketIndex)
+#
+# comparison.ggplot <- ggplot(comparison, aes(x = MarketIndex, y = DJI)) +
+#   geom_point() +
+#   geom_smooth(method = 'lm', se = FALSE)
+#
+# # print(comparison.ggplot)
 
 alt.comparison <- melt(comparison, id.vars = 'Date')
-name(alt.comparison) <- c('Date', 'Index', 'Price')
+names(alt.comparison) <- c('Date', 'Index', 'Price')
 
 ggplot(alt.comparison, aes(x = Date, y = Price, group = Index, color = Index)) +
   geom_point() +
   geom_line()
 
-comparison <- transform(comparisonMarketIndex = -scale(MarketIndex))
+comparison <- transform(comparison, MarketIndex = -scale(MarketIndex))
 
-comparison <- transform(comparisonDJI = scale(DJI))
+comparison <- transform(comparison, DJI = scale(DJI))
 alt.comparison <- melt(comparison, id.vars = 'Date')
 names(alt.comparison) <- c('Date', 'Index', 'Price')
 
