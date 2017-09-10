@@ -261,3 +261,12 @@ for (lambda in lambdas) {
 ggplot(performance, aes(x = Lambda, y = RMSE)) +
   geom_point() +
   geom_line()
+
+# lambdaの最小値を採用する
+# with関数はperformanceの中で、Lmabda以降を評価する
+best.lambda <- with(performance, Lambda[which(RMSE == min(RMSE))])
+print(best.lambda)
+
+glmnet.fit <- with(df, glmnet(poly(X, degree = 10), Y))
+
+coef(glmnet.fit, s = best.lambda)
