@@ -1,3 +1,4 @@
+library('glmnet')
 library('ggplot2')
 
 set.seed(1)
@@ -157,4 +158,106 @@ ggplot(performance, aes(x = Degree, y = RMSE, linetype = Data)) +
   geom_point() +
   geom_line()
 
-  
+# 上記の交差検定の結果、degreeは3~5くらいがよさそう
+# degree = 4くらいでやってみる
+poly.fit <- lm(Y ~ poly(X, degree = 4), data = df)
+df <- transform(df, PredictY = predict(poly.fit))
+
+ggplot(df, aes(x = X, y = PredictY)) +
+  geom_point() +
+  geom_line()
+
+# 以下、データの正則化をしていく
+lm.fit <- lm(y ~ x)
+# coefで切片と傾きと出す（sumはその合計？）
+# l2では、今後値を合計したときに、相殺されないように２乗している
+l2.model.complexity <- sum(coef(lm.fit) ^ 2)
+print(l2.model.complexity)
+# l1では、絶対値を利用している
+l1.model.complexity <- sum(abs(coef(lm.fit)))
+print(l1.model.complexity)
+
+set.seed(1)
+
+x <- seq(0, 1, by = 0.01)
+# glmnetが2行以上のカラムが必要らしいので、x2をcbindする
+x2 <- seq(0, 1, by = 0.01)
+
+y <- sin(2 * pi * x ) + rnorm(length(x), 0, 0.1)
+
+x <- matrix(x)
+x <- cbind(x, x2)
+print(x)
+glmnet(x, y)
+
+# こんな感じで出力される
+# glmnetでは、上から順位に強い正則化が表示される
+# 列 Df は、モデル中のいくつの係数が非ゼロとなったかを表している。この数字は切片を含まない
+# 基本的にはこのモデルの R^2
+# Lambda は、当てはめ ているモデルがどのぐらい複雑になっても良いかをコントロールする正則化アルゴリズムのパ ラメータである。
+# この Lambda は最終的にモデルの主要なパラメータとなる値をコントロールするので、ハイパーパラメータと呼ばれる。
+# lambadaは、y = cost() + α θのαの部分
+#
+# Call:  glmnet(x = x, y = y)
+#
+#       Df    %Dev   Lambda
+#  [1,]  0 0.00000 0.542800
+#  [2,]  1 0.09991 0.494600
+#  [3,]  1 0.18290 0.450700
+#  [4,]  1 0.25170 0.410600
+#  [5,]  1 0.30890 0.374200
+#  [6,]  1 0.35640 0.340900
+#  [7,]  1 0.39580 0.310600
+#  [8,]  1 0.42850 0.283000
+#  [9,]  1 0.45570 0.257900
+# [10,]  1 0.47820 0.235000
+# [11,]  1 0.49690 0.214100
+# [12,]  1 0.51250 0.195100
+# [13,]  1 0.52540 0.177800
+# [14,]  1 0.53610 0.162000
+# [15,]  1 0.54500 0.147600
+# [16,]  1 0.55240 0.134500
+# [17,]  2 0.55850 0.122500
+# [18,]  1 0.56360 0.111600
+
+# 以下、最適なlambdaを探すコード
+
+set.seed(1)
+
+x <- seq(0, 1, by = 0.01)
+y <- sin(2 * pi * x) + rnorm(length(x), 0, 0.1)
+
+n <- length(x)
+
+indices <- sort(sample(1:n, round(0.5 * n)))
+
+training.x <- x[indices]
+training.y <- y[indices]
+
+test.x <- x[-indices]
+test.y <- y[-indices]
+
+df <- data.frame(X = x, Y = y)
+training.df <- data.frame(X = training.x, Y = training.y)
+test.df <- data.frame(X = test.x, Y = test.y)
+
+rmse <- function(y, h) {
+  return(sqrt(mean((y - h) ^ 2)))
+}
+
+glmnet.fit <- with(training.df, glmnet(poly(X, degree = 10), Y))
+
+lambdas <- glmnet.fit$lambda
+
+performance <- data.frame()
+
+for (lambda in lambdas) {
+  performance <- rbind(performance,
+    data.frame(Lambda = lambda,
+                RMSE = rmse(test.y, with(test.df, predict(glmnet.fit, poly(X,
+                            degree = 10), s = lambda)))))
+}
+
+ggplot(performance, aes(x = Lambda, y = RMSE)) +
+  geom_point() +
+  geom_line()
